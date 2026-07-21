@@ -74,6 +74,18 @@ Two dashboard surfaces exist; pick per audience:
 9. **Timing reality (this run):** provision→studio ~2 min; Vercel build 43s; scrape+segment ~6 min; seed ~4 min (delegate to a subagent); verify+edit proof ~2 min. **Total ~15 min.** Announce the dashboard URL at minute 3 — the audience watches the remaining 12.
 10. **Edit proof lands in ~5s** (published perspective + api host + 2.5s poll). Don't promise "instant"; promise "before you finish the sentence".
 
+## Run-2 learnings (benchmark run vs astro.build, 2026-07-21 — see BENCHMARK.md)
+
+Run 2 applied learnings 1–10 and finished 33 min / 0 errors vs run 1's ~48 min / 3 errors. Additions:
+
+11. **Batch the provision block:** after `create_project`, fire `deploy_schema` + extra `add_cors_origin` + runDoc `create_documents` in ONE parallel block; then publish+`deploy_studio` together. Provision phase 4 min → 1.6 min.
+12. **Launch the Vercel deploy before scraping** — it builds (~40s) while you read the target. Dashboard shareable at minute ~4, not 14.
+13. **One recon call, one extraction call.** Inject the extractor + take inventory in call 1; extract ALL sections + stash `window.__sections` in call 2. Prune oversized heroes inside the extraction call (visibility rules → drop `video/picture/canvas`/big `svg` → trim trailing child blocks until ≤34KB).
+14. **Seed transfer channel refinements:** escape RAW field values, not the stringified JSON (double-encoding corrupts `\n`); stash/restore the host page body ONCE for the whole batch; harden 2+ space runs against text-extraction collapse; expect DEL chars and HTML entities inside `data-*` attributes.
+15. **Real timestamps only** on the mission feed (`date -u` at phase boundaries) — estimated times make benchmarks worthless.
+16. **Integrity gate:** after seeding, verify `count of "{{" in each htmlTemplate == count(slots)` and template lengths == browser-measured lengths, char-exact.
+17. **Seed is the bottleneck (46% of wall).** Next run: batch 2–3 sections per patch, drop mid-run length checks, probe direct JS return before falling back to the `<pre>` channel. Target ~20 min total.
+
 ## Legal/hygiene
 
 Demo-only recreation for the prospect's own site (or your own). Content, images, and CSS remain theirs — hotlinked, not claimed. Tear down after the deal cycle. Never run against sites you have no business relationship with, except neutral safe defaults for internal practice.
